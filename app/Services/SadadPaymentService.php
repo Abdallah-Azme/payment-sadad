@@ -79,11 +79,10 @@ class SadadPaymentService
         ]);
 
         // All form fields to POST to SADAD (signature included)
+        // Note: productdetail is excluded — SADAD may hash all received params,
+        // so we only send exactly what was signed.
         $formFields = array_merge($signableParams, [
-            'signature'                  => $signature,
-            'productdetail[0][order_id]' => $orderId,
-            'productdetail[0][amount]'   => $amount,
-            'productdetail[0][quantity]' => 1,
+            'signature' => $signature,
         ]);
 
         \Illuminate\Support\Facades\Log::debug('SADAD Form POST Fields', [

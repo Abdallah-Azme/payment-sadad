@@ -80,7 +80,7 @@ class SadadPaymentService
 
         // All form fields to POST to SADAD (signature included)
         $formFields = array_merge($signableParams, [
-            'signature'     => $signature,
+            'checksumhash'  => $signature,
             'productdetail[0][order_id]' => $orderId,
             'productdetail[0][amount]' => $amount,
             'productdetail[0][quantity]' => 1,

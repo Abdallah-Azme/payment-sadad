@@ -38,7 +38,7 @@ class SadadPaymentService
     public function initiatePayment(array $orderData): array
     {
         $orderId = $this->generateOrderId();
-        $txnDate = now()->format('Y-m-d');
+        $txnDate = now()->format('Y-m-d H:i:s');
         $amount  = number_format((float) $orderData['amount'], 2, '.', '');
 
         $callbackUrl = config('sadad.callback_url');
@@ -80,9 +80,9 @@ class SadadPaymentService
 
         // All form fields to POST to SADAD (signature included)
         $formFields = array_merge($signableParams, [
-            'checksumhash'  => $signature,
+            'signature'                  => $signature,
             'productdetail[0][order_id]' => $orderId,
-            'productdetail[0][amount]' => $amount,
+            'productdetail[0][amount]'   => $amount,
             'productdetail[0][quantity]' => 1,
         ]);
 

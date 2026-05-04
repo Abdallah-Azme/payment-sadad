@@ -1,0 +1,5 @@
+Card Type: Mastercard
+Cardholder Name: Any two words
+Card Number: 5123 4500 0000 0008
+CVC: Any
+Expiry Date: Any future date

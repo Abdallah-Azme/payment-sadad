@@ -1,0 +1,1095 @@
+1. Quick Start (5 Minutes)
+Get up and running with SADAD Web Checkout 2.1 in just a few minutes. This guide is designed for developers who want a fast, minimal, and correct integration.
+
+Who is this for?
+This quick start is intended for backend developers or technical teams who want to validate the integration end-to-end before moving to production.
+
+What You Will Achieve
+By the end of this guide, you will be able to:
+
+Create a SADAD payment request
+Generate a valid request signature
+Redirect a customer to the SADAD payment page
+Receive the transaction result securely
+Prerequisites
+Before you begin, ensure that:
+
+Your SADAD merchant onboarding is approved
+You have access to the SADAD Merchant Panel
+You have generated a Test Secret Key and noted your Merchant ID (MID)
+This is a one-time setup.
+
+Step 1: Prepare Order Details
+From your server, prepare the order data you want to send to SADAD:
+
+Order ID (unique per transaction)
+Transaction amount
+Customer contact details
+Callback URL
+These values must remain unchanged throughout the transaction lifecycle.
+
+Step 2: Generate Signature (Server-Side)
+Using your Secret Key, generate a SHA256 signature:
+
+Sort parameters alphabetically by key
+Prefix with Secret Key
+Concatenate values only
+Hash using SHA256 and convert to uppercase
+👉 Refer to:
+Signature Generation (Request)
+
+warning
+Never generate the signature on the client side.
+
+Step 3: Submit Payment Form
+Submit an HTML form from your backend or server-rendered page to the SADAD Web Checkout endpoint.
+
+Method: POST
+Target: SADAD Web Checkout URL
+Include all parameters + generated signature
+👉 Refer to:
+Payment Form Submission
+
+Step 4: Customer Completes Payment
+The customer:
+
+Selects a payment method
+Completes authentication if required (3DS / Apple Pay / Google Pay)
+Is redirected back to your CALLBACK_URL
+No sensitive card data ever touches your servers.
+
+Step 5: Handle Callback & Webhook
+After payment:
+
+Callback URL returns final transaction status (browser-based)
+Webhook provides reliable server-to-server confirmation
+You should validate the signature and update your order status accordingly.
+
+👉 Refer to:
+
+Callback URL & Response Parameters
+Webhook Configuration & Payload
+Common Mistakes to Avoid
+Generating signature on frontend
+Modifying parameters after signature generation
+Ignoring webhook events
+Treating callback as the only source of truth
+What’s Next?
+Once the quick start flow works successfully:
+
+Configure Test & Live environments
+Review Best Practices
+Enable Webhooks in production
+👉 Continue with:
+Merchant Account Setup
+
+
+2. Prerequisites
+Before you begin integration, ensure you have:
+
+An active SADAD merchant account
+Payment Gateway API service enabled in your account
+Merchant ID (MID)
+Secret Key for Test environment
+Secret Key for Live environment
+A publicly accessible Callback URL served over HTTPS
+Basic knowledge of server-side scripting (PHP, Node.js, Python, etc.)
+Previous
+1. Quick Start (5 Minutes)
+Next
+3. Merchant Account Setup
+
+
+3. Merchant Account Setup
+Before integrating SADAD Web Checkout 2.1, you must complete the merchant account setup and obtain the required credentials from the SADAD Merchant Panel.
+
+This is a one-time setup.
+
+Prerequisites
+Ensure that:
+
+Your SADAD merchant onboarding is approved
+You have access to the SADAD Merchant Panel
+You know whether you are integrating in Test or Live mode
+Step-by-Step Account Setup
+1️⃣ Log in to the SADAD Merchant Panel
+Access the panel using your registered credentials:
+
+👉 https://panel.sadad.qa
+
+SADAD Merchant Panel Login
+2️⃣ Navigate to Payment Gateway Settings
+From the top menu, ensure Online Payments is selected
+From the left-side menu, click Payment Gateway
+This section contains all configuration options related to online payment integrations.
+
+3️⃣ Generate Your Secret Keys
+Within the Payment Gateway section:
+
+Locate the API / Secret Key settings
+Generate or copy:
+Test Secret Key (for sandbox transactions)
+Live Secret Key (for production transactions)
+Each merchant has separate keys for Test and Live environments.
+
+SADAD Merchant Panel - Test and Live Secret Keys
+4️⃣ Note Your Merchant ID (MID)
+Your Merchant ID (MID) is displayed in the Merchant Panel.
+
+This value is required in all payment requests, callbacks, and webhook notifications.
+
+Understanding Test vs Live Mode
+Using a Test Secret Key:
+
+Opens the Sandbox Checkout
+No real funds are involved
+Using a Live Secret Key:
+
+Opens the Live Checkout
+Real transactions are processed
+There is no separate endpoint for test or live mode. The environment is determined solely by the Secret Key used.
+
+📘 For more details:
+→ Environments – Test & Live
+
+Security Best Practices (Important)
+caution
+Never expose Secret Keys in frontend code
+Never commit keys to source control
+Always generate signatures server-side
+Rotate keys immediately if they are compromised
+Treat Secret Keys with the same level of security as passwords.
+
+What’s Next?
+After completing the account setup, proceed with the integration in the following order:
+
+Signature Generation
+Payment Form & Parameters
+Web Checkout Flow
+Callback & Webhook Handling
+Need Help?
+If you face issues accessing the Merchant Panel or generating keys, contact:
+
+📧 Contact SADAD Support
+
+Please include:
+
+Merchant ID
+Environment (Test or Live)
+Screenshot (if applicable)
+This helps resolve issues faster.
+
+4. Test & Live Environment
+Environment	Endpoint	Secret Key	Cards Charged?
+Test	https://sadadqa.com/webpurchase	Test Key	No
+Live	https://sadadqa.com/webpurchase	Live Key	Yes
+Use the Test environment for development and QA
+Switch to Live Secret Key only when going to production
+Test cards are provided by SADAD support upon request
+Previous
+3. Merchant Account Setup
+Next
+5. Web Checkout 2.1 Flow
+
+
+5. Web Checkout 2.1 Flow
+Below is the complete customer-to-payment journey for SADAD Web Checkout 2.1.
+
+SADAD
+Merchant Site
+Customer
+SADAD
+Merchant Site
+Customer
+Places order on website
+Generate request signature
+POST form to /webpurchase
+Display payment page
+Enter payment details
+Redirect to CALLBACK_URL
+Server callback with transaction result
+Verify signature
+Show success / failure page
+Try the Sandbox Flow
+
+This sandbox checkout is for testing purposes only. No real funds are involved.
+
+Test Credit Card Information
+(For Sandbox / Test Mode only)
+
+Use the following card details to test transactions in Sandbox mode:
+
+Card Type: Mastercard
+Cardholder Name: Any two words
+Card Number: 5123 4500 0000 0008
+CVC: Any
+Expiry Date: Any future date
+
+6. Required Request Parameters
+Parameter	Mandatory	Format / Example	Description
+merchant_id	Yes	123456	Your Merchant ID (MID)
+ORDER_ID	Yes	ORD-20251216-001	Unique order ID from your system (max 50 chars)
+TXN_AMOUNT	Yes	150.00	Amount with two decimals
+WEBSITE	Yes	MYSHOP	Merchant website identifier
+CALLBACK_URL	Yes	https://yoursite.com/callback	HTTPS callback URL
+MOBILE_NO	Yes	97412345678	Customer mobile (with country code)
+email	Yes	user@example.com	Customer email
+txnDate	Yes	2025-12-16	Transaction date (YYYY-MM-DD)
+signature	Yes	A1B2C3...	SHA256 signature (uppercase)
+
+
+7. Signature Generation (Request)
+SADAD requires merchants to generate a SHA256 signature to ensure the authenticity and integrity of each payment request.
+
+The signature must be generated server-side using your Secret Key and sent along with the transaction request.
+
+Exact Steps
+Collect all mandatory parameters except signature
+Sort parameters alphabetically by key name
+Prefix the string with your Secret Key
+Concatenate only the parameter values (no keys, no separators)
+Generate a SHA256 hash
+Convert the hash output to uppercase
+Code Samples (Primary Languages)
+PHP
+JavaScript (Node.js)
+Python
+Java
+.NET (C#)
+<?php
+$secretKey = "YOUR_TEST_SECRET_KEY";
+$params = [
+  "CALLBACK_URL"=>"https://yoursite.com/callback",
+  "MOBILE_NO"=>"97412345678",
+  "ORDER_ID"=>"ORD-20251216-001",
+  "TXN_AMOUNT"=>"150.00",
+  "WEBSITE"=>"MYSHOP",
+  "email"=>"user@example.com",
+  "merchant_id"=>"123456",
+  "txnDate"=>"2025-12-16"
+];
+ksort($params);
+$string=$secretKey;
+foreach($params as $v){$string.=$v;}
+echo strtoupper(hash('sha256',$string));
+?>
+
+
+
+8. Payment Request Form
+To initiate a transaction using SADAD Web Checkout 2.1, the merchant must submit an HTML form from their server to the SADAD checkout endpoint.
+
+This form contains the order details and a server-generated signature to ensure request authenticity.
+
+Important Integration Rules
+caution
+The payment form must be generated and submitted server-side
+The signature must be generated using your Secret Key
+Do not expose Secret Keys or signature logic on the frontend
+Always use the POST method
+Checkout Endpoint
+Use the following endpoint for both Test and Live transactions:
+
+https://sadadqa.com/webpurchase
+
+The environment (Sandbox or Live) is determined by the Secret Key used to generate the signature.
+
+Mandatory Form Parameters
+The following parameters are required for all Web Checkout requests:
+
+Parameter	Description
+merchant_id	SADAD Merchant ID (MID)
+ORDER_ID	Unique order reference generated by the merchant
+TXN_AMOUNT	Transaction amount
+CALLBACK_URL	Merchant callback URL
+WEBSITE	Merchant website identifier
+email	Customer email address
+MOBILE_NO	Customer mobile number
+txnDate	Transaction date and time
+signature	SHA256 signature generated server-side
+Optional Parameters
+These parameters are optional but recommended where applicable:
+
+Parameter	Description
+productdetail	Product or service details
+customer_name	Customer full name
+language	Checkout language preference
+Optional parameters must not be included in the signature unless explicitly documented.
+
+Sample HTML Payment Form
+<form action="https://sadadqa.com/webpurchase" method="post" target="_blank">
+  <input type="hidden" name="merchant_id" value="7015085" />
+  <input type="hidden" name="ORDER_ID" value="ORD-20251216-001" />
+  <input type="hidden" name="TXN_AMOUNT" value="150.00" />
+  <input type="hidden" name="CALLBACK_URL" value="https://yoursite.com/callback" />
+  <input type="hidden" name="WEBSITE" value="yoursite.com" />
+  <input type="hidden" name="email" value="customer@example.com" />
+  <input type="hidden" name="MOBILE_NO" value="97412345678" />
+  <input type="hidden" name="txnDate" value="2025-12-16 12:30:00" />
+  <input type="hidden" name="signature" value="GENERATED_SIGNATURE" />
+  <button type="submit">Pay Now</button>
+</form>
+
+Product Details Structure (Optional)
+productdetail[0][order_id]
+productdetail[0][amount]
+productdetail[0][quantity]
+
+<input type="hidden" name="productdetail[0][order_id]" value="ITEM-001" />
+<input type="hidden" name="productdetail[0][amount]" value="150.00" />
+<input type="hidden" name="productdetail[0][quantity]" value="1" />
+
+Product details are not included in the signature calculation.
+
+Validation & Formatting Rules
+note
+ORDER_ID must be unique per transaction
+TXN_AMOUNT must be numeric
+CALLBACK_URL must be publicly accessible
+Date/time formats must remain consistent
+What Happens After Form Submission?
+Customer is redirected to SADAD checkout
+Customer completes payment
+SADAD redirects to CALLBACK_URL
+SADAD sends webhook notification
+Need Help?
+Contact support@sadad.qa with:
+
+Merchant ID
+Order ID
+Environment
+
+
+9. Customer Redirection & Payment
+After form submission:
+
+The browser is redirected to SADAD’s secure payment page
+Customer selects payment method and completes payment
+All sensitive data is handled exclusively by SADAD
+Merchant Responsibilities
+
+Do not iframe or modify the SADAD payment page
+Do not collect card details on your server
+Clearly inform the customer they are being redirected to SADAD
+This model ensures easy PCI DSS compliance.
+
+
+
+10. Callback URL & Response Parameters
+After a customer completes (or exits) the SADAD Web Checkout flow, SADAD sends the transaction result to the merchant via an HTTP POST request to the configured CALLBACK_URL.
+
+The callback is primarily used to:
+
+Display the payment result to the customer
+Update order status on the merchant system
+Merchants are strongly advised to also implement Webhook handling for reliable server-to-server transaction updates.
+
+Callback Trigger Conditions
+The callback is triggered when:
+
+The customer completes the checkout flow, or
+The customer exits the payment page after authentication
+The callback depends on the customer’s browser or app and should not be treated as the only source of truth.
+
+📘 For reliable updates, see:
+→ Webhook Integration
+
+Callback Request Format
+Method: POST
+Content-Type: application/x-www-form-urlencoded
+Encoding: URL-encoded key–value pairs
+The callback payload is not JSON.
+
+Important Callback Parameters
+Parameter	Example Value	Description
+MID	7015085	SADAD Merchant ID
+ORDERID	ORD-20251216-001	Original merchant order ID
+RESPCODE	3	Transaction response code
+RESPMSG	Txn Success	Human-readable message
+TXNAMOUNT	150.00	Transaction amount
+STATUS	TXN_SUCCESS	Overall transaction state
+transaction_number	SD2883696582255	SADAD transaction reference
+transaction_status	3	Final transaction status
+website_ref_no	ORD-20251216-001	Merchant order reference
+issandboxmode	1	Indicates sandbox (1) or live (0)
+checksumhash	A1B2C3...	Signature for verification
+Transaction Status Values
+The transaction_status field indicates the current transaction state:
+
+Value	Meaning
+1	In Progress
+2	Failed
+3	Successful
+Important Behaviour Note
+note
+Transactions marked as In Progress may be updated to Success or Failed automatically after 12:00 AM, following final confirmation from the issuing bank.
+
+This behaviour typically occurs due to:
+
+Delayed bank or network responses
+Temporary connectivity issues
+Customer exiting the payment flow early
+SADAD continuously reconciles such transactions and updates the final status once confirmation is received.
+
+Sample Callback Payload
+Below is an example of a callback payload posted to the merchant’s CALLBACK_URL:
+
+MID=7015085
+&ORDERID=ORD-20251216-001
+&RESPCODE=3
+&RESPMSG=Txn+Success
+&STATUS=TXN_SUCCESS
+&TXNAMOUNT=150.00
+&issandboxmode=1
+&transaction_number=SD2883696582255
+&transaction_status=3
+&website_ref_no=ORD-20251216-001
+&checksumhash=4532c38dcbeac04f1e58766428116728a03d1ae28c566fc3abbcad687821b819
+
+Verifying Callback Authenticity
+Each callback includes a checksumhash to verify that the response was sent by SADAD.
+
+To verify the callback:
+
+Store the received checksumhash separately
+Remove checksumhash from the received parameters
+Sort the remaining parameters alphabetically by key name
+Create a string starting with your Secret Key
+Append the values of the sorted parameters
+Generate a SHA256 hash
+Compare the generated hash with the received checksumhash
+If both values match, the callback is authentic.
+
+note
+The verification logic is identical to the request signature generation process, applied to the incoming callback payload.
+
+For detailed hashing logic and language samples, refer to:
+→ Signature Generation
+
+How Merchants Should Handle Callbacks
+Recommended handling approach:
+
+Always verify checksumhash before updating order status
+Treat transaction_status = 3 as final success
+Treat transaction_status = 2 as final failure
+Treat transaction_status = 1 as temporary
+Use webhooks to reconcile delayed or missed updates
+Common Mistakes to Avoid
+caution
+Updating order status without signature verification
+Treating callback as the only transaction update mechanism
+Assuming In Progress status is final
+Ignoring post-midnight status updates
+What’s Next?
+After handling the callback, ensure that:
+
+👉 Webhook Processing is implemented
+👉 Status Handling logic is in place
+
+Need Help?
+If you face issues with callback handling, contact:
+
+📧 Contact SADAD Support
+
+Please include:
+
+Merchant ID
+Order ID
+Callback timestamp
+Environment (Test or Live)
+
+
+
+13. Callback Signature Verification
+To ensure that the callback data received at your CALLBACK_URL is genuinely sent by SADAD and has not been tampered with, merchants must verify the checksumhash included in the callback payload.
+
+This verification step is mandatory for security and compliance.
+
+Callback Payload Format (Important)
+Callback data is sent as HTTP POST
+Content-Type: application/x-www-form-urlencoded
+Payload is NOT JSON
+Example callback payload received by merchant:
+
+MID=7015085&ORDERID=ORD-20251216-001&RESPCODE=3&RESPMSG=Txn+Success&STATUS=TXN_SUCCESS&
+TXNAMOUNT=150.00&transaction_number=SD2883696582255&transaction_status=3&
+checksumhash=4532c38dcbeac04f1e58766428116728a03d1ae28c566fc3abbcad687821b819
+
+Verification Logic (High Level)
+Store the received checksumhash in a temporary variable
+Remove checksumhash from the received parameters
+Sort the remaining parameters alphabetically by key
+Create a string starting with your Secret Key
+Append the values only (no keys, no separators)
+Generate a SHA256 hash
+Compare the generated hash with the received checksumhash
+If both hashes match, the callback is authentic.
+
+PHP Verification Example
+<?php
+$secretKey = "YOUR_SECRET_KEY";
+
+// Copy POST data
+$params = $_POST;
+
+// Store and remove checksumhash
+$receivedHash = $params['checksumhash'];
+unset($params['checksumhash']);
+
+// Sort parameters by key
+ksort($params);
+
+// Build string
+$string = $secretKey;
+foreach ($params as $value) {
+    $string .= $value;
+}
+
+// Generate hash
+$generatedHash = hash('sha256', $string);
+
+// Compare
+if (strtolower($generatedHash) === strtolower($receivedHash)) {
+    // Callback is valid
+    http_response_code(200);
+    echo "OK";
+} else {
+    // Invalid callback
+    http_response_code(400);
+    echo "INVALID CHECKSUM";
+}
+?>
+
+Common Verification Mistakes
+❌ URL-decoding values before hashing
+❌ Including checksumhash in the hash calculation
+❌ Sorting by values instead of keys
+❌ Performing verification on client-side code
+
+Important Notes
+caution
+Always perform verification server-side
+Do not trust callback data without checksum validation
+Use Test Secret Key for sandbox transactions
+Use Live Secret Key for production transactions
+Relationship with Webhooks
+Callback → customer-facing redirection
+Webhook → server-to-server notification
+Both use the same checksum verification logic.
+
+👉 For webhook verification, refer to: Webhook Configuration & Payload
+
+Recommended Implementation Flow
+Yes
+
+No
+
+Receive Callback
+
+Extract checksumhash
+
+Generate Hash
+
+Hashes Match?
+
+Process Order
+
+Reject Callback
+
+If you have questions about callback validation, contact SADAD Support at
+📧 support@sadad.qa
+
+
+
+
+11. Webhook Configuration & Payload
+SADAD provides a Webhook mechanism to notify merchants about transaction events independently of customer redirection or callback URL execution.
+
+Webhooks are particularly useful in scenarios where:
+
+The customer closes the browser or app
+Redirection to the callback URL does not occur
+The merchant requires a reliable server-side notification
+Webhook vs Callback (Important Difference)
+Callback URL	Webhook
+Triggered after checkout flow	Triggered immediately after transaction creation
+Depends on customer browser/app	Independent of customer behavior
+Form POST (x-www-form-urlencoded)	JSON POST
+Used for final order update	Used for early & reliable notification
+Merchants are recommended to support both mechanisms.
+
+Webhook Configuration
+Log in to the SADAD Merchant Panel
+👉 https://panel.sadad.qa
+
+Ensure Online Payments is selected
+
+Navigate to Payment Gateway → Webhook
+
+Enter your Webhook URL
+
+Save the configuration
+
+SADAD Merchant Panel – Webhook configuration screen SADAD Merchant Panel - Webhook Configuration
+Webhook Payload Format
+Webhook notifications are sent via HTTP POST with a JSON body.
+
+{
+  "invoiceNumber": "SD64573479587",
+  "isTestMode": 0,
+  "merchantId": "123567",
+  "message": "success",
+  "transactionNumber": "SD2418209648273",
+  "transactionStatus": 3,
+  "txnAmount": 5,
+  "websiteRefNo": "SD3214578995",
+  "checksumhash": "d5d33a4f3871a615ebf20d09aea43e866f4f602e01543bbe4bcd4c1cc93a0d03"
+}
+
+Webhook Parameters Explanation
+Parameter	Description
+invoiceNumber	Available only for invoice-based transactions
+isTestMode	1 = Test, any other value = Live
+merchantId	SADAD Merchant ID
+message	success / failed
+transactionNumber	SADAD transaction reference
+transactionStatus	1 = In Progress, 2 = Failed, 3 = Successful
+txnAmount	Transaction amount
+websiteRefNo	Merchant order reference
+checksumhash	Signature to verify authenticity
+Verifying Webhook Authenticity
+Extract and temporarily store checksumhash
+Remove checksumhash from the payload
+Sorts remaining parameters by key in ascending order
+Prefix with your Secret Key
+Append parameter values only
+Generate SHA256 hash
+Compare with received checksum
+If matched, the webhook is trusted.
+
+Replay Attack Handling (Important)
+A replay attack occurs when a previously valid webhook message is resent by an attacker to trigger duplicate processing.
+
+To protect against replay attacks, merchants must implement idempotent handling:
+
+Store and track transactionNumber (or invoiceNumber)
+Process each transaction only once
+If a webhook is received again for the same transaction, safely ignore it
+⚠️ A replayed webhook will still have a valid checksum. Checksum validation alone does not prevent replay attacks.
+
+Required Response Behaviour
+Even if:
+
+The checksum is invalid
+The order reference does not match
+The webhook is a duplicate (replay)
+You must always return:
+
+HTTP/1.1 200 OK
+
+Returning non-200 responses may cause SADAD to retry delivery and may increase replay risk.
+
+Webhook Acknowledgement (Mandatory)
+Your server must respond with:
+
+{ "status": "success" }
+
+note
+Webhook signature verification uses the same SHA256 logic as request signature generation.
+
+For hashing examples in multiple languages, refer to: Signature Generation (Request)
+
+
+12. Transaction Status Handling
+This section explains how to interpret and handle transaction statuses returned by SADAD via Callback URL and Webhook notifications.
+
+Correct status handling is critical to:
+
+Prevent double order fulfilment
+Avoid premature failure marking
+Ensure accurate reconciliation and settlement
+Official Transaction Status Values
+SADAD uses the following numeric status codes across callback and webhook:
+
+Code	Status	Meaning
+1	In Progress	Transaction is created but not yet finalized
+2	Failed	Transaction failed or was declined
+3	Successful	Transaction completed successfully
+info
+Status values are final only when transactionStatus = 2 or 3.
+Status 1 must always be treated as temporary.
+
+Where Status Is Received
+Channel	Purpose	Format
+Callback URL	Final customer redirection result	Form POST (x-www-form-urlencoded)
+Webhook	Reliable server-side notification	JSON POST
+Merchants are strongly advised to support both.
+
+Handling Each Status (Recommended Logic)
+🟡 Status = 1 (In Progress)
+This status indicates:
+
+The payment flow has started
+Bank or wallet authorization is pending
+Final confirmation is awaited
+Recommended handling:
+
+Save the transaction as PENDING
+Do not deliver goods/services
+Do not retry payment automatically
+caution
+Never treat In Progress as a failure. Many transactions complete successfully later.
+
+🔴 Status = 2 (Failed)
+This status indicates:
+
+Payment was declined
+Authentication failed
+Bank rejected the transaction
+Customer abandoned payment
+Recommended handling:
+
+Mark order as FAILED
+Allow the customer to retry payment
+Log failure reason for support review
+🟢 Status = 3 (Successful)
+This status indicates:
+
+Payment authorized and captured
+Funds will be settled as per SADAD cycle
+Recommended handling:
+
+Mark order as PAID
+Fulfil the order
+Send confirmation to customer
+End-of-Day Auto Reconciliation (Important)
+All transactions that remain In Progress (status = 1) are automatically re-evaluated after 12:00 AM (Qatar time) once final confirmation is received from the bank.
+
+These transactions will be updated to either:
+
+2 → Failed, or
+3 → Successful
+important
+Merchants must re-check pending transactions after midnight
+before assuming a permanent failure.
+
+Why In-Progress Updates Occur
+This behaviour may occur due to:
+
+Delayed bank responses
+Wallet authentication delays
+Temporary network issues
+Customer closing the browser/app early
+SADAD continuously reconciles such cases with issuing banks to ensure final accuracy.
+
+Recommended Merchant Implementation Flow
+1
+
+2
+
+3
+
+Receive Callback/Webhook
+
+transactionStatus
+
+Mark as Pending
+
+Mark as Failed
+
+Mark as Successful
+
+Recheck after Midnight
+
+Common Merchant Mistakes
+❌ Treating In Progress as failure
+❌ Delivering goods before final success
+❌ Ignoring webhook updates
+❌ Not reconciling pending transactions
+
+Best Practice Summary
+Always verify status server-side
+Prefer webhook for reliability
+Use callback for customer UX
+Reconcile pending transactions daily
+Never trust client-side status alone
+Related Guides
+Callback URL & Response Parameters
+Webhook Configuration & Payload
+Signature Verification
+If you need clarification on any transaction state, contact SADAD Support at
+📧 support@sadad.qa
+
+
+14. Error Handling & Failure Reasons
+This section explains how payment failures and errors are communicated by SADAD during Web Checkout 2.1 transactions.
+
+SADAD does not expose a fixed or standardized error-code catalog for all failure scenarios. Instead, merchants should rely on:
+
+transaction_status
+RESPCODE
+RESPMSG
+Context of where the failure occurred
+This approach aligns with issuer-side payment processing realities and international payment scheme practices.
+
+Where Failures Can Originate
+Payment failures can originate from multiple sources:
+
+Source	Description
+Merchant system	Invalid or incomplete request data
+Customer	Payment cancellation or timeout
+Issuing bank	Declines based on risk, balance, or rules
+Wallet provider	Authentication or authorization failure
+Network	Temporary connectivity or processing delays
+Key Fields to Inspect
+When a transaction fails, merchants should primarily inspect:
+
+Field	Description
+transaction_status	Final state of the transaction (1, 2, 3)
+RESPCODE	High-level response indicator
+RESPMSG	Human-readable failure or status message
+STATUS	Textual transaction state
+transaction_number	SADAD transaction reference
+important
+Only transaction_status = 2 represents a final failure. Status 1 (In Progress) is temporary.
+
+Common Failure Message Patterns
+The following messages are examples of typical issuer or system responses. Exact wording may vary depending on the bank, wallet, or payment method.
+
+Issuer / Bank Declines
+Typical Message	Meaning	Recommended Merchant Action
+Transaction declined	Issuing bank rejected the transaction	Ask customer to contact their bank
+Insufficient funds	Not enough balance available	Retry with another payment method
+Card not permitted	Card not enabled for online use	Customer to enable card or retry
+Risk / security rejection	Bank fraud or risk rules triggered	Customer to verify with bank
+Customer-Driven Failures
+Typical Message	Meaning	Recommended Merchant Action
+Payment cancelled	Customer cancelled checkout	Allow safe retry
+Authentication failed	OTP / wallet authentication failed	Ask customer to retry
+Authentication timeout	Customer did not complete verification	Retry payment
+Merchant / Request Errors
+Typical Message	Meaning	Recommended Merchant Action
+Invalid request	Missing or invalid parameters	Validate request payload
+Invalid signature	Signature mismatch	Recheck signature logic
+Invalid merchant	Merchant ID or key mismatch	Confirm MID & environment
+System / Network Conditions
+Typical Message	Meaning	Recommended Merchant Action
+System error	Temporary processing issue	Retry after some time
+Gateway timeout	Bank or network delay	Retry later
+Service unavailable	Temporary outage	Monitor & retry
+In-Progress Transactions & Delayed Updates
+Some transactions may remain In Progress (transaction_status = 1) initially.
+
+This may occur due to:
+
+Delayed bank responses
+Wallet authorization delays
+Temporary network interruptions
+Customer closing the browser/app early
+Such transactions are automatically reconciled after 12:00 AM (Qatar time) and updated to either Success (3) or Failure (2) based on final bank confirmation.
+
+Best Practices for Handling Failures
+Do not rely on error text alone
+Always use transaction_status as the source of truth
+Never expose raw technical messages directly to customers
+Log full callback and webhook payloads server-side
+Use webhooks to capture delayed updates
+Allow customers to retry failed transactions safely
+Common Merchant Mistakes
+❌ Assuming all failures are final immediately
+❌ Treating In Progress as failure
+❌ Ignoring webhook updates
+❌ Hard-coding error messages or logic
+
+Important Disclaimer
+caution
+Exact failure messages are returned by banks, wallets, or payment networks and may vary by issuer and payment method.
+
+SADAD does not control or override issuer-side decline decisions.
+
+Related Guides
+Transaction Status Handling
+Callback URL & Response Parameters
+Webhook Configuration & Payload
+If failure behavior appears inconsistent or unclear, contact SADAD Support with:
+
+Merchant ID
+Order ID
+Transaction number
+📧 support@sadad.qa
+
+Previous
+
+
+
+
+16. Best Practices & Recommendations
+This section outlines recommended best practices for integrating and operating SADAD Web Checkout 2.1 efficiently, securely, and in compliance with payment standards.
+
+Following these practices will help merchants:
+
+Improve payment success rates
+Reduce customer friction
+Avoid common integration issues
+Minimize support escalations
+1. Always Use Server-Side Integration
+Generate signatures only on the server
+Never expose Secret Keys in frontend code
+Never generate or verify signatures in JavaScript running in the browser
+caution
+Exposing Secret Keys can lead to fraudulent transactions and account compromise.
+
+2. Implement Both Callback and Webhook
+Use Callback URL for customer redirection and UX
+Use Webhook for reliable, server-to-server transaction updates
+Treat webhook updates as the source of truth for backend systems
+This ensures transaction updates are received even if:
+
+The customer closes the browser
+Network issues interrupt redirection
+3. Handle Transaction Status Correctly
+Use transaction_status as the final authority
+Treat status 1 (In Progress) as temporary
+Fulfil orders only when status is 3 (Successful)
+Reconcile pending transactions after midnight
+4. Use Separate Test and Live Credentials
+Use Test Secret Key for sandbox testing
+Use Live Secret Key only in production
+Never mix Test and Live credentials
+info
+Using Test keys always opens the checkout in Sandbox mode.
+
+5. Log All Requests and Responses
+Maintain server-side logs for:
+
+Outgoing payment requests
+Callback payloads
+Webhook payloads
+Signature verification results
+Logs are essential for:
+
+Issue investigation
+Dispute handling
+Audit and reconciliation
+6. Display User-Friendly Messages
+Do not expose raw technical messages to customers
+Show simple, actionable messages such as:
+“Payment failed. Please try again.”
+“Payment pending. Please wait.”
+7. Validate Callback and Webhook Authenticity
+Always verify checksumhash
+Reject payloads that fail verification
+Process only authenticated callbacks and webhooks
+8. Avoid Duplicate Order Processing
+Use unique Order IDs for each payment attempt
+Ensure idempotent backend logic
+Do not process the same transaction twice
+9. Secure Your Endpoints
+Use HTTPS for all callback and webhook URLs
+Restrict access via firewall or IP allowlisting if possible
+Protect endpoints from unauthorized requests
+10. Test Edge Scenarios
+Before going live, test:
+
+Customer cancellation
+Authentication failure
+Network interruption
+Delayed bank responses
+Duplicate callbacks
+Common Merchant Mistakes to Avoid
+❌ Hard-coding logic based on messages
+❌ Ignoring webhook updates
+❌ Treating In Progress as failure
+❌ Exposing Secret Keys
+❌ Delivering goods before final success
+
+Final Recommendation
+Following these best practices ensures:
+
+Stable integrations
+Higher conversion rates
+Faster issue resolution
+Compliance with payment and security standards
+Related Documentation
+Quick Start Guide
+Transaction Status Handling
+Error Handling & Failure Reasons
+Support & Escalation Guide
+If you have questions about best practices, contact SADAD Support via the support section.
+
+
+
+15. Support & Escalation Guide
+This section explains how merchants should approach support, what information to share, and how SADAD handles investigations related to Web Checkout 2.1.
+
+Following this guide helps:
+
+Faster issue resolution
+Reduced back-and-forth
+Accurate root-cause analysis
+When Should Merchants Contact Support?
+Merchants should contact SADAD Support when:
+
+Transactions show unexpected behavior
+Status remains In Progress beyond the reconciliation window
+Repeated failures occur for multiple customers
+Callback or webhook is not being received
+Signature verification fails despite correct implementation
+Information to Share with Support
+When raising a support request, always include:
+
+Required Detail	Description
+Merchant ID (MID)	Your SADAD Merchant ID
+Order ID	Your internal order reference
+SADAD Transaction Number	Returned in callback/webhook
+Environment	Test or Live
+Date & Time	Approximate transaction time
+Issue Description	What is observed vs expected
+Screenshots / Logs	If applicable
+Providing complete details allows faster investigation.
+
+Common Issues & Initial Checks
+Callback Not Received
+Verify callback URL is publicly accessible
+Confirm HTTPS is enabled
+Check server firewall or WAF rules
+Ensure callback endpoint returns HTTP 200
+Webhook Not Received
+Confirm webhook URL is configured correctly in merchant panel
+Ensure webhook endpoint accepts JSON POST
+Verify server returns HTTP 200 with body { "status": "success" }
+Signature Verification Fails
+Confirm correct Secret Key (Test vs Live)
+Ensure parameters are sorted alphabetically by key
+Exclude checksumhash from verification
+Do not URL-decode values before hashing
+Understanding Issuer-Side Declines
+Some transaction failures are decided by issuing banks or wallets. In such cases:
+
+SADAD does not receive detailed decline reasoning
+Exact messages may vary by bank
+Merchants should advise customers to contact their bank
+Investigation & Resolution Timeline
+Typical handling timeline:
+
+Issue Type	Expected Time
+Configuration issues	Same business day
+Callback / webhook issues	1–2 business days
+Issuer decline analysis	Depends on bank response
+Reconciliation queries	After settlement confirmation
+Best Practices to Reduce Support Tickets
+Implement both callback and webhook
+Log all incoming payloads server-side
+Use transaction_status as final authority
+Reconcile pending transactions daily
+Avoid client-side decision making
+Contacting SADAD Support
+For any unresolved issues, contact:
+
+📧 Contact SADAD Support
+
+Related Documentation
+Transaction Status Handling
+Callback Signature Verification
+Webhook Configuration & Payload
+SADAD Support is committed to assisting merchants while adhering to payment security, compliance, and issuer regulations.

@@ -34,10 +34,19 @@ class SadadSignatureService
         ksort($params, SORT_STRING);
 
         $string = $this->secretKey;
+        $appendLog = [];
 
-        foreach ($params as $value) {
+        foreach ($params as $key => $value) {
             $string .= $value;
+            $appendLog[] = "[{$key}] = \"{$value}\"";
         }
+
+        \Illuminate\Support\Facades\Log::debug('SADAD SHA256 Input', [
+            'sorted_keys_order' => array_keys($params),
+            'values_appended'   => $appendLog,
+            'secret_key'        => substr($this->secretKey, 0, 4) . str_repeat('*', max(0, strlen($this->secretKey) - 4)),
+            'full_pre_hash_string' => $string,
+        ]);
 
         return strtoupper(hash('sha256', $string));
     }

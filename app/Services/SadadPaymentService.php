@@ -86,6 +86,11 @@ class SadadPaymentService
             'productdetail[0][quantity]' => 1,
         ]);
 
+        \Illuminate\Support\Facades\Log::debug('SADAD Form POST Fields', [
+            'checkout_url' => config('sadad.checkout_url'),
+            'form_fields'  => $formFields,
+        ]);
+
         return [
             'transaction' => $transaction,
             'form_fields' => $formFields,

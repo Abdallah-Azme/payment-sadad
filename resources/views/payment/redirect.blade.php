@@ -26,7 +26,20 @@
     {{-- Hidden auto-submit form to SADAD --}}
     <form id="sadad-form" action="{{ $checkoutUrl }}" method="POST" style="display:none;">
         @foreach ($formFields as $key => $value)
-            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            @if (is_array($value))
+                {{-- Handle nested arrays like productdetail --}}
+                @foreach ($value as $i => $item)
+                    @if (is_array($item))
+                        @foreach ($item as $subKey => $subValue)
+                            <input type="hidden" name="{{ $key }}[{{ $i }}][{{ $subKey }}]" value="{{ $subValue }}">
+                        @endforeach
+                    @else
+                        <input type="hidden" name="{{ $key }}[{{ $i }}]" value="{{ $item }}">
+                    @endif
+                @endforeach
+            @else
+                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            @endif
         @endforeach
     </form>
 

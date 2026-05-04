@@ -2,53 +2,50 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 /**
- * Handles SHA256 signature generation and verification for SADAD Web Checkout 2.1.
+ * Handles checksum generation and verification for SADAD Web Checkout.
  *
- * All cryptographic operations must be performed server-side only.
- * Never expose the secret key or this logic to the frontend.
- *
- * Algorithm (per SADAD docs):
- *  1. Sort parameters alphabetically by key
- *  2. Prefix string with Secret Key
- *  3. Concatenate parameter VALUES only (no keys, no separators)
- *  4. SHA256 hash → uppercase
+ * The actual SADAD algorithm (as used in production):
+ *  1. Build a data array with postData + secretKey
+ *  2. JSON encode the data
+ *  3. Generate a random 4-char salt
+ *  4. SHA256 hash: json_string + "|" + salt
+ *  5. Append salt to hash
+ *  6. AES-128-CBC encrypt the result using (secretKey + merchantId) as key
  */
 class SadadSignatureService
 {
     public function __construct(
-        private string $secretKey
+        private string $secretKey,
+        private string $merchantId,
     ) {
-        $this->secretKey = trim($secretKey);
+        $this->secretKey = $secretKey;
+        $this->merchantId = $merchantId;
     }
 
     /**
-     * Generate a SADAD request signature from an array of payment parameters.
+     * Generate a checksumhash for a SADAD payment request.
      *
-     * Exclude the `signature` key itself before calling this method.
-     *
-     * @param  array<string, string>  $params  All mandatory request params (no `signature` key)
+     * @param  array<string, mixed>  $params  All request params (no checksumhash key)
      */
-    public function generateRequestSignature(array $params): string
+    public function generateChecksumHash(array $params): string
     {
-        ksort($params, SORT_STRING);
+        $checksumData = [
+            'postData'  => $params,
+            'secretKey' => (string) $this->secretKey,
+        ];
 
-        $string = $this->secretKey;
-        $appendLog = [];
+        $key = $this->secretKey . $this->merchantId;
+        $jsonStr = json_encode($checksumData);
 
-        foreach ($params as $key => $value) {
-            $string .= $value;
-            $appendLog[] = "[{$key}] = \"{$value}\"";
-        }
-
-        \Illuminate\Support\Facades\Log::debug('SADAD SHA256 Input', [
-            'sorted_keys_order' => array_keys($params),
-            'values_appended'   => $appendLog,
-            'secret_key'        => substr($this->secretKey, 0, 4) . str_repeat('*', max(0, strlen($this->secretKey) - 4)),
-            'full_pre_hash_string' => $string,
+        Log::debug('SADAD Checksum Generation', [
+            'json_payload' => $jsonStr,
+            'encryption_key_length' => strlen($key),
         ]);
 
-        return strtoupper(hash('sha256', $string));
+        return $this->getChecksumFromString($jsonStr, $key);
     }
 
     /**
@@ -59,14 +56,88 @@ class SadadSignatureService
      */
     public function verifyChecksum(array $params, string $receivedHash): bool
     {
-        // Remove checksumhash from the params before hashing
-        unset($params['checksumhash']);
+        $postData = $params;
+        unset($postData['checksumhash']);
 
-        // Cast all values to string (webhook delivers numeric types in JSON)
-        $stringParams = array_map('strval', $params);
+        $dataToVerify = [
+            'postData'  => $postData,
+            'secretKey' => $this->secretKey,
+        ];
 
-        $generatedHash = $this->generateRequestSignature($stringParams);
+        $key = $this->secretKey . $this->merchantId;
+        $jsonStr = json_encode($dataToVerify);
 
-        return strtolower($generatedHash) === strtolower($receivedHash);
+        return $this->verifychecksumFromStr($jsonStr, $key, $receivedHash) === 'TRUE';
+    }
+
+    /**
+     * Generate checksum: SHA256(json + "|" + salt) → append salt → AES encrypt.
+     */
+    protected function getChecksumFromString(string $str, string $key): string
+    {
+        $salt = $this->generateSalt(4);
+        $finalString = $str . '|' . $salt;
+        $hash = hash('sha256', $finalString);
+        $hashString = $hash . $salt;
+
+        return $this->encrypt($hashString, $key);
+    }
+
+    /**
+     * Verify checksum: AES decrypt → extract salt → recompute SHA256 → compare.
+     */
+    public function verifychecksumFromStr(string $str, string $key, string $checksumvalue): string
+    {
+        $sadadHash = $this->decrypt($checksumvalue, $key);
+        if (! $sadadHash) {
+            return 'FALSE';
+        }
+
+        $salt = substr($sadadHash, -4);
+        $finalString = $str . '|' . $salt;
+        $websiteHash = hash('sha256', $finalString);
+        $websiteHash .= $salt;
+
+        return ($websiteHash == $sadadHash) ? 'TRUE' : 'FALSE';
+    }
+
+    /**
+     * Generate a random salt string.
+     */
+    public function generateSalt(int $length): string
+    {
+        $random = '';
+        srand((int) ((float) microtime() * 1000000));
+        $data = 'AbcDE123IJKLMN67QRSTUVWXYZ';
+        $data .= 'aBCdefghijklmn123opq45rs67tuv89wxyz';
+        $data .= '0FGH45OP89';
+
+        for ($i = 0; $i < $length; $i++) {
+            $random .= substr($data, (rand() % (strlen($data))), 1);
+        }
+
+        return $random;
+    }
+
+    /**
+     * AES-128-CBC encrypt.
+     */
+    public function encrypt(string $input, string $ky): string
+    {
+        $ky = html_entity_decode($ky);
+        $iv = '@@@@&&&&####$$$$';
+
+        return openssl_encrypt($input, 'AES-128-CBC', $ky, 0, $iv);
+    }
+
+    /**
+     * AES-128-CBC decrypt.
+     */
+    public function decrypt(string $crypt, string $ky): string|false
+    {
+        $ky = html_entity_decode($ky);
+        $iv = '@@@@&&&&####$$$$';
+
+        return openssl_decrypt($crypt, 'AES-128-CBC', $ky, 0, $iv);
     }
 }

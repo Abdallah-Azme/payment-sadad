@@ -13,10 +13,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Bind SADAD signature service with the resolved secret key from config
+        // Bind SADAD signature service with the resolved secret key and merchant ID
         $this->app->singleton(SadadSignatureService::class, function () {
             return new SadadSignatureService(
-                secretKey: config('sadad.secret_key', '')
+                secretKey: (string) config('sadad.secret_key', ''),
+                merchantId: (string) config('sadad.merchant_id', ''),
             );
         });
 

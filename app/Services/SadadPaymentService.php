@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use App\Models\PaymentTransaction;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * Orchestrates SADAD Web Checkout 2.1 payment initiation.
+ * Orchestrates SADAD Web Checkout payment initiation.
  *
  * This service is responsible for:
  *  - Generating unique order IDs
@@ -23,7 +24,7 @@ class SadadPaymentService
      * Initiate a payment with SADAD.
      *
      * Creates a PaymentTransaction record and returns all form fields
-     * (including the server-generated signature) ready for hidden form submission.
+     * (including the server-generated checksumhash) ready for hidden form submission.
      *
      * @param  array{
      *     amount: string|float,
@@ -33,36 +34,59 @@ class SadadPaymentService
      *     product_detail?: array<int, array{order_id: string, amount: string, quantity: int}>|null
      * }  $orderData
      *
-     * @return array{transaction: PaymentTransaction, form_fields: array<string, string>}
+     * @return array{transaction: PaymentTransaction, form_fields: array<string, mixed>, checkout_url: string}
      */
     public function initiatePayment(array $orderData): array
     {
         $orderId = $this->generateOrderId();
-        $txnDate = now()->format('Y-m-d');
+        $txnDate = date('Y-m-d H:i:s');
         $amount  = number_format((float) $orderData['amount'], 2, '.', '');
 
         $callbackUrl = config('sadad.callback_url');
-        $merchantId  = config('sadad.merchant_id');
-        $website     = config('sadad.website');
+        $merchantId  = (string) config('sadad.merchant_id');
+        $website     = (string) config('sadad.website');
 
-        // Mandatory parameters — these are the exact fields used for signature generation
-        $signableParams = [
-            'CALLBACK_URL' => $callbackUrl,
-            'MOBILE_NO'    => $orderData['customer_mobile'],
-            'ORDER_ID'     => $orderId,
-            'TXN_AMOUNT'   => $amount,
-            'WEBSITE'      => $website,
-            'email'        => $orderData['customer_email'],
-            'merchant_id'  => $merchantId,
-            'txnDate'      => $txnDate,
+        // Product details (required by SADAD)
+        $productDetail = $orderData['product_detail'] ?? [
+            [
+                'order_id' => $orderId,
+                'amount'   => (float) $amount,
+                'quantity' => 1,
+            ],
         ];
 
-        $signature = $this->signatureService->generateRequestSignature($signableParams);
+        // Format productdetail items (trim values as per working implementation)
+        $formattedProductDetail = [];
+        foreach ($productDetail as $i => $item) {
+            foreach ($item as $key => $value) {
+                $formattedProductDetail[$i][$key] = trim((string) $value);
+            }
+        }
 
-        \Illuminate\Support\Facades\Log::info('SADAD Signature Debug', [
-            'signable_params' => $signableParams,
-            'signature'       => $signature,
-            'secret_key_len'  => strlen(config('sadad.secret_key')),
+        // Build params matching the working carwash implementation
+        $params = [
+            'merchant_id'  => $merchantId,
+            'ORDER_ID'     => (string) $orderId,
+            'WEBSITE'      => $website,
+            'TXN_AMOUNT'   => $amount,
+            'CUST_ID'      => (string) $orderData['customer_email'],
+            'EMAIL'        => (string) $orderData['customer_email'],
+            'MOBILE_NO'    => (string) $orderData['customer_mobile'],
+            'SADAD_WEBCHECKOUT_PAGE_LANGUAGE' => 'ENG',
+            'CALLBACK_URL' => (string) $callbackUrl,
+            'txnDate'      => $txnDate,
+            'productdetail' => $formattedProductDetail,
+        ];
+
+        // Generate checksumhash using the SADAD encryption algorithm
+        $checksumhash = $this->signatureService->generateChecksumHash($params);
+        $params['checksumhash'] = $checksumhash;
+
+        Log::info('SADAD Payment Request', [
+            'order_id'    => $orderId,
+            'amount'      => $amount,
+            'checkout_url' => config('sadad.checkout_url'),
+            'checksumhash' => $checksumhash,
         ]);
 
         // Persist the transaction as pending before redirecting to SADAD
@@ -78,21 +102,9 @@ class SadadPaymentService
             'txn_date'        => now()->toDateString(),
         ]);
 
-        // All form fields to POST to SADAD (signature included)
-        // Note: productdetail is excluded — SADAD may hash all received params,
-        // so we only send exactly what was signed.
-        $formFields = array_merge($signableParams, [
-            'signature' => $signature,
-        ]);
-
-        \Illuminate\Support\Facades\Log::debug('SADAD Form POST Fields', [
-            'checkout_url' => config('sadad.checkout_url'),
-            'form_fields'  => $formFields,
-        ]);
-
         return [
-            'transaction' => $transaction,
-            'form_fields' => $formFields,
+            'transaction'  => $transaction,
+            'form_fields'  => $params,
             'checkout_url' => config('sadad.checkout_url'),
         ];
     }

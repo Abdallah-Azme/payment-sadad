@@ -38,7 +38,7 @@ class SadadPaymentService
     public function initiatePayment(array $orderData): array
     {
         $orderId = $this->generateOrderId();
-        $txnDate = now()->format('Y-m-d H:i:s');
+        $txnDate = now()->format('Y-m-d');
         $amount  = number_format((float) $orderData['amount'], 2, '.', '');
 
         $callbackUrl = config('sadad.callback_url');
